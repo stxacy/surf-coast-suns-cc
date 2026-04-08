@@ -176,12 +176,12 @@
       filter: blur(80px); pointer-events: none; z-index: 0;
     }
     .orb-1 {
-      width: 600px; height: 600px; background: rgba(200,131,28,0.18);
+      width: min(600px, 80vw); height: min(600px, 80vw); background: rgba(200,131,28,0.18);
       top: -150px; right: -100px;
       animation: orbFloat 14s ease-in-out infinite;
     }
     .orb-2 {
-      width: 400px; height: 400px; background: rgba(232,0,28,0.12);
+      width: min(400px, 60vw); height: min(400px, 60vw); background: rgba(232,0,28,0.12);
       bottom: -80px; left: -80px;
       animation: orbFloat 18s ease-in-out infinite reverse;
     }
@@ -981,7 +981,7 @@
   <div id="fixtures-fallback" style="display:none;">
     <div class="fixture-row" style="grid-template-columns:1fr;justify-items:center;text-align:center;padding:32px 24px;">
       <div style="font-size:40px;margin-bottom:12px;">🏏</div>
-      <div style="font-size:18px;font-weight:600;color:var(--white);margin-bottom:8px;">View fixtures &amp; results on PlayHQ</div>
+      <div style="font-size:18px;font-weight:600;color:#1A1A1A;margin-bottom:8px;">View fixtures &amp; results on PlayHQ</div>
       <div style="font-size:14px;color:var(--muted);max-width:480px;line-height:1.7;">Full schedules, draws, ladders and results for all Surf Coast Suns CC teams.</div>
       <a href="https://www.playhq.com/cricket-australia/org/surf-coast-cricket-club/e23be353" target="_blank" rel="noopener" class="btn-primary" style="margin-top:20px;">View on PlayHQ &rarr;</a>
     </div>
@@ -1038,16 +1038,16 @@
         const venue = g.venue?.name || 'Venue TBC';
         const grade = g.grade?.name || '';
         const isPast = g.scheduledStartTime && new Date(g.scheduledStartTime) < new Date();
-        return `<div class="fixture-row" role="listitem">
-          <div style="font-size:12px;color:var(--teal-lt);font-weight:700;letter-spacing:1px;text-transform:uppercase;">${grade}</div>
-          <div style="font-weight:700;color:var(--white);text-align:right;">${home}</div>
+        return `<div class="fixture-row" role="listitem" data-grade="${grade.toLowerCase()}">
+          <div style="font-size:12px;color:var(--teal);font-weight:700;letter-spacing:1px;text-transform:uppercase;">${grade}</div>
+          <div style="font-weight:700;color:#1A1A1A;text-align:right;">${home}</div>
           <div style="text-align:center;">
             <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:2px;">vs</div>
             ${isPast?resultTag(g):''}
           </div>
-          <div style="font-weight:700;color:var(--white);">${away}</div>
+          <div style="font-weight:700;color:#1A1A1A;">${away}</div>
           <div style="text-align:right;">
-            <div style="font-size:13px;color:var(--white);font-weight:600;">${date}</div>
+            <div style="font-size:13px;color:#1A1A1A;font-weight:600;">${date}</div>
             <div style="font-size:12px;color:var(--muted);">${time}${venue!=='Venue TBC'?' · '+venue.split(',')[0]:''}</div>
           </div>
         </div>`;
@@ -1443,7 +1443,7 @@
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
   revealEls.forEach(el => revealObs.observe(el));
 
-  // Tab buttons
+  // Tab buttons — filter fixture rows by grade
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => {
@@ -1452,25 +1452,58 @@
       });
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
+
+      const filter = btn.textContent.trim().toLowerCase();
+      document.querySelectorAll('#fixtures-list .fixture-row').forEach(row => {
+        if (filter === 'all teams') {
+          row.style.display = '';
+        } else {
+          const grade = (row.dataset.grade || '').toLowerCase();
+          const match =
+            (filter === "senior men's" && (grade.includes('grade') || grade.includes('men'))) ||
+            (filter === "women's"       && grade.includes('women')) ||
+            (filter === 'juniors'       && (grade.includes('junior') || grade.includes('u/') || grade.includes('under')));
+          row.style.display = match ? '' : 'none';
+        }
+      });
     });
   });
 
   // Contact form
   function handleSubmit(e) {
     e.preventDefault();
-    const btn = e.target.querySelector('.form-submit');
+    const form = e.target;
+    const btn  = form.querySelector('.form-submit');
     btn.textContent = 'Sending\u2026';
     btn.disabled = true;
-    setTimeout(() => {
-      btn.textContent = '\u2713 Message Sent!';
-      btn.style.background = 'linear-gradient(135deg,#1a9e5f,#3ddc84)';
-      e.target.reset();
+
+    const data = new FormData(form);
+    fetch('https://formsubmit.co/ajax/surfcoastsunscc@gmail.com', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: data
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success === 'true' || res.success === true) {
+        btn.textContent = '\u2713 Message Sent!';
+        btn.style.background = 'linear-gradient(135deg,#1a9e5f,#3ddc84)';
+        form.reset();
+      } else {
+        throw new Error('failed');
+      }
+    })
+    .catch(() => {
+      btn.textContent = 'Error — try again';
+      btn.style.background = 'linear-gradient(135deg,#c0001a,#e8001c)';
+    })
+    .finally(() => {
       setTimeout(() => {
         btn.textContent = 'Send Message';
         btn.style.background = '';
         btn.disabled = false;
       }, 3500);
-    }, 1400);
+    });
   }
 
   /* ── NEWS ARTICLE THUMBNAILS ── */
