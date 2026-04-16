@@ -1186,11 +1186,11 @@
 
     /* ─── Mobile ──────────────────────────────────────────────── */
     @media (max-width: 768px) {
-      /* Nav always frosted on mobile — no transparent phase */
+      /* Nav fully opaque on mobile — no bleed-through */
       .nav {
         padding: 1.2rem 1.5rem;
-        background: rgba(246, 245, 243, 0.95);
-        backdrop-filter: blur(18px) saturate(1.2);
+        background: var(--bg);
+        backdrop-filter: none;
         border-bottom-color: var(--border);
       }
       .nav-links { display: none; }
